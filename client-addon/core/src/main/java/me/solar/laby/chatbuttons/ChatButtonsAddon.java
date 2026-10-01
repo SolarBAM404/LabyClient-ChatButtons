@@ -1,7 +1,7 @@
 package me.solar.laby.chatbuttons;
 
-import me.solar.laby.chatbuttons.client.ButtonState;
 import java.util.function.Supplier;
+import me.solar.laby.chatbuttons.client.ButtonState;
 import net.labymod.api.Laby;
 import net.labymod.api.addon.LabyAddon;
 import net.labymod.api.client.resources.ResourceLocation;
@@ -20,6 +20,7 @@ public class ChatButtonsAddon extends LabyAddon<ChatButtonsConfig> {
     ResourceLocation channel = ResourceLocation.create("chatbuttons", "main");
     Laby.references().payloadRegistry().registerPayloadChannel(channel);
     this.registerListener(this);
+
     this.logger().info("Chat Buttons enabled");
   }
 
@@ -34,6 +35,7 @@ public class ChatButtonsAddon extends LabyAddon<ChatButtonsConfig> {
         || !"main".equals(event.identifier().getPath())) {
       return;
     }
+
     ButtonState.replaceFromServer(event.getPayload());
   }
 

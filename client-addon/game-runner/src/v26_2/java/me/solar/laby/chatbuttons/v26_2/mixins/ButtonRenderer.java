@@ -1,12 +1,14 @@
 package me.solar.laby.chatbuttons.v26_2.mixins;
 
-import me.solar.laby.chatbuttons.ChatButtonsAddon;
-import me.solar.laby.chatbuttons.client.ButtonState;
 import java.util.ArrayList;
 import java.util.List;
+import me.solar.laby.chatbuttons.ChatButtonsAddon;
+import me.solar.laby.chatbuttons.client.ButtonState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
 /** Shared HUD/chat drawing code kept outside Mixin classes. */
@@ -14,6 +16,7 @@ public final class ButtonRenderer {
   private static final int BUTTON_HEIGHT = 18;
   private static final int BUTTON_GAP = 3;
   private static final int BUTTON_PADDING = 7;
+
   private static List<ButtonState.Button> cachedButtonState = List.of();
   private static List<RenderedButton> renderedButtons = List.of();
 
@@ -27,10 +30,13 @@ public final class ButtonRenderer {
 
   public static void draw(GuiGraphicsExtractor graphics, int mouseX, int mouseY, int y) {
     var buttons = ButtonState.buttons();
-    if (!ChatButtonsAddon.shouldShowButtons() || buttons.isEmpty()) return;
+    if (!ChatButtonsAddon.shouldShowButtons() || buttons.isEmpty()) {
+      return;
+    }
 
     Minecraft minecraft = Minecraft.getInstance();
     List<RenderedButton> preparedButtons = prepareButtons(buttons, minecraft);
+
     int x = 4;
     for (int i = 0; i < preparedButtons.size(); i++) {
       RenderedButton renderedButton = preparedButtons.get(i);
@@ -38,6 +44,7 @@ public final class ButtonRenderer {
       int width = renderedButton.width();
       boolean hovered =
           mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + BUTTON_HEIGHT;
+
       int background = hovered ? lighten(button.backgroundColor()) : button.backgroundColor();
       graphics.fill(x, y, x + width, y + BUTTON_HEIGHT, background);
       graphics.fill(x, y, x + width, y + 1, button.textColor());
@@ -47,6 +54,7 @@ public final class ButtonRenderer {
         graphics.item(renderedButton.itemStack(), x + 2, y + 1);
         labelX = x + 21;
       }
+
       graphics.text(
           minecraft.font,
           button.label(),
@@ -54,38 +62,47 @@ public final class ButtonRenderer {
           y + (BUTTON_HEIGHT - minecraft.font.lineHeight) / 2,
           button.textColor(),
           false);
+
       if (hovered && renderedButton.tooltip() != null) {
         graphics.setTooltipForNextFrame(minecraft.font, renderedButton.tooltip(), mouseX, mouseY);
       }
+
       x += width + BUTTON_GAP;
     }
   }
 
   private static List<RenderedButton> prepareButtons(
       List<ButtonState.Button> buttons, Minecraft minecraft) {
-    if (buttons != cachedButtonState) {
-      List<RenderedButton> prepared = new ArrayList<>(buttons.size());
-      for (int i = 0; i < buttons.size(); i++) {
-        ButtonState.Button button = buttons.get(i);
-        ItemStack itemStack = null;
-        if (!button.itemIcon().isBlank()) {
-          var itemId = net.minecraft.resources.Identifier.tryParse(button.itemIcon());
-          var item =
-              itemId == null
-                  ? null
-                  : net.minecraft.core.registries.BuiltInRegistries.ITEM.getValue(itemId);
-          if (item != null) {
-            itemStack = new ItemStack(item);
-          }
-        }
-        Component tooltip = button.tooltip().isBlank() ? null : Component.literal(button.tooltip());
-        prepared.add(
-            new RenderedButton(button, buttonWidth(button, minecraft), itemStack, tooltip));
-      }
-      cachedButtonState = buttons;
-      renderedButtons = List.copyOf(prepared);
+    if (buttons == cachedButtonState) {
+      return renderedButtons;
     }
+
+    List<RenderedButton> prepared = new ArrayList<>(buttons.size());
+    for (int i = 0; i < buttons.size(); i++) {
+      ButtonState.Button button = buttons.get(i);
+      ItemStack itemStack = itemStackFor(button.itemIcon());
+      Component tooltip = button.tooltip().isBlank() ? null : Component.literal(button.tooltip());
+
+      prepared.add(new RenderedButton(button, buttonWidth(button, minecraft), itemStack, tooltip));
+    }
+
+    cachedButtonState = buttons;
+    renderedButtons = List.copyOf(prepared);
     return renderedButtons;
+  }
+
+  private static ItemStack itemStackFor(String itemIcon) {
+    if (itemIcon.isBlank()) {
+      return null;
+    }
+
+    Identifier itemId = Identifier.tryParse(itemIcon);
+    if (itemId == null) {
+      return null;
+    }
+
+    var item = BuiltInRegistries.ITEM.getValue(itemId);
+    return item == null ? null : new ItemStack(item);
   }
 
   private static int lighten(int color) {

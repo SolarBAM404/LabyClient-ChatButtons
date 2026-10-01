@@ -20,6 +20,7 @@ import org.jetbrains.annotations.NotNull;
 public final class PaperChatButtonService implements ChatButtonService, PluginMessageListener {
   public static final String CHANNEL = "chatbuttons:main";
   private static final Gson GSON = new Gson();
+
   private final Plugin plugin;
   private final Map<UUID, Map<String, ChatButton>> buttons = new LinkedHashMap<>();
 
@@ -34,9 +35,11 @@ public final class PaperChatButtonService implements ChatButtonService, PluginMe
   public void setButtons(Player player, Collection<ChatButton> newButtons) {
     Map<String, ChatButton> state = new LinkedHashMap<>();
     for (ChatButton button : newButtons) {
-      if (state.putIfAbsent(button.id(), button) != null)
+      if (state.putIfAbsent(button.id(), button) != null) {
         throw new IllegalArgumentException("Duplicate button id: " + button.id());
+      }
     }
+
     this.buttons.put(player.getUniqueId(), state);
     sendState(player, state.values());
   }
@@ -46,13 +49,17 @@ public final class PaperChatButtonService implements ChatButtonService, PluginMe
     Map<String, ChatButton> state =
         this.buttons.computeIfAbsent(player.getUniqueId(), ignored -> new LinkedHashMap<>());
     state.put(button.id(), button);
+
     sendState(player, state.values());
   }
 
   @Override
   public boolean removeButton(Player player, String id) {
     Map<String, ChatButton> state = this.buttons.get(player.getUniqueId());
-    if (state == null || state.remove(id) == null) return false;
+    if (state == null || state.remove(id) == null) {
+      return false;
+    }
+
     sendState(player, state.values());
     return true;
   }
@@ -65,7 +72,10 @@ public final class PaperChatButtonService implements ChatButtonService, PluginMe
 
   @Override
   public void clearAll() {
-    for (Player player : Bukkit.getOnlinePlayers()) clearButtons(player);
+    for (Player player : Bukkit.getOnlinePlayers()) {
+      clearButtons(player);
+    }
+
     this.buttons.clear();
   }
 
@@ -75,46 +85,79 @@ public final class PaperChatButtonService implements ChatButtonService, PluginMe
   }
 
   private void sendState(Player player, Collection<ChatButton> state) {
-    if (!player.isOnline()) return;
+    if (!player.isOnline()) {
+      return;
+    }
+
     JsonObject root = new JsonObject();
     root.addProperty("type", "buttons");
+
     JsonArray array = new JsonArray();
     for (ChatButton button : state) {
-      JsonObject item = new JsonObject();
-      item.addProperty("id", button.id());
-      item.addProperty("label", button.label());
-      if (button.tooltip() != null) item.addProperty("tooltip", button.tooltip());
-      if (button.backgroundColor() != null)
-        item.addProperty("backgroundColor", button.backgroundColor());
-      if (button.textColor() != null) item.addProperty("textColor", button.textColor());
-      if (button.itemIcon() != null) item.addProperty("itemIcon", button.itemIcon());
-      array.add(item);
+      array.add(toJson(button));
     }
+
     root.add("buttons", array);
     player.sendPluginMessage(
         this.plugin, CHANNEL, GSON.toJson(root).getBytes(StandardCharsets.UTF_8));
   }
 
+  private static JsonObject toJson(ChatButton button) {
+    JsonObject item = new JsonObject();
+    item.addProperty("id", button.id());
+    item.addProperty("label", button.label());
+
+    if (button.tooltip() != null) {
+      item.addProperty("tooltip", button.tooltip());
+    }
+    if (button.backgroundColor() != null) {
+      item.addProperty("backgroundColor", button.backgroundColor());
+    }
+    if (button.textColor() != null) {
+      item.addProperty("textColor", button.textColor());
+    }
+    if (button.itemIcon() != null) {
+      item.addProperty("itemIcon", button.itemIcon());
+    }
+
+    return item;
+  }
+
   @Override
   public void onPluginMessageReceived(
       @NotNull String channel, @NotNull Player player, byte @NotNull [] payload) {
-    if (!CHANNEL.equals(channel) || payload.length == 0 || payload.length > 1024) return;
+    if (!CHANNEL.equals(channel) || payload.length == 0 || payload.length > 1024) {
+      return;
+    }
+
     try {
       JsonObject request =
           GSON.fromJson(new String(payload, StandardCharsets.UTF_8), JsonObject.class);
       if (request == null
           || !request.has("type")
-          || !"click".equals(request.get("type").getAsString())) return;
-      if (!request.has("id") || !request.get("id").isJsonPrimitive()) return;
+          || !"click".equals(request.get("type").getAsString())) {
+        return;
+      }
+      if (!request.has("id") || !request.get("id").isJsonPrimitive()) {
+        return;
+      }
+
       String id = request.get("id").getAsString();
-      if (id.length() > 64) return;
+      if (id.length() > 64) {
+        return;
+      }
+
       Map<String, ChatButton> state = this.buttons.get(player.getUniqueId());
       ChatButton button = state == null ? null : state.get(id);
-      if (button == null) return;
+      if (button == null) {
+        return;
+      }
+
       if (button.permission() != null && !player.hasPermission(button.permission())) {
         player.sendMessage("You do not have permission to use that button.");
         return;
       }
+
       Bukkit.dispatchCommand(player, button.command());
     } catch (RuntimeException exception) {
       this.plugin

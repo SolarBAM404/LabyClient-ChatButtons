@@ -1,14 +1,15 @@
 package me.solar.laby.chatbuttons.v26_2.mixins;
 
+import java.nio.charset.StandardCharsets;
 import me.solar.laby.chatbuttons.ChatButtonsAddon;
 import me.solar.laby.chatbuttons.client.ButtonState;
-import java.nio.charset.StandardCharsets;
 import net.labymod.api.Laby;
 import net.labymod.api.client.resources.ResourceLocation;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.input.MouseButtonEvent;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -42,24 +43,27 @@ public abstract class MixinChatScreen {
 
   @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
   private void chatbuttons$clickButton(
-      net.minecraft.client.input.MouseButtonEvent event,
-      boolean doubleClick,
-      CallbackInfoReturnable<Boolean> callbackInfo) {
+      MouseButtonEvent event, boolean doubleClick, CallbackInfoReturnable<Boolean> callbackInfo) {
     chatbuttons$handleClick(event, callbackInfo, this.chatbuttons$rowY());
   }
 
   private void chatbuttons$handleClick(
-      net.minecraft.client.input.MouseButtonEvent event,
-      CallbackInfoReturnable<Boolean> callbackInfo,
-      int y) {
+      MouseButtonEvent event, CallbackInfoReturnable<Boolean> callbackInfo, int y) {
     if (event.button() != 0
         || !ChatButtonsAddon.shouldShowButtons()
-        || ButtonState.buttons().isEmpty()) return;
+        || ButtonState.buttons().isEmpty()) {
+      return;
+    }
+
     Minecraft minecraft = Minecraft.getInstance();
-    if (minecraft.getConnection() == null) return;
+    if (minecraft.getConnection() == null) {
+      return;
+    }
+
     int x = 4;
     for (ButtonState.Button chatButton : ButtonState.buttons()) {
       int width = ButtonRenderer.buttonWidth(chatButton, minecraft);
+
       if (event.x() >= x
           && event.x() <= x + width
           && event.y() >= y
@@ -73,6 +77,7 @@ public abstract class MixinChatScreen {
         callbackInfo.setReturnValue(true);
         return;
       }
+
       x += width + BUTTON_GAP;
     }
   }
