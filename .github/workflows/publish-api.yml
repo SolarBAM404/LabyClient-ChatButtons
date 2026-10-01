@@ -1,18 +1,15 @@
-name: Publish Paper API
+name: Publish Paper API to Maven Central
 
 on:
-  release:
-    types: [published]
   workflow_dispatch:
     inputs:
       version:
-        description: "Maven version to publish (for example, 1.0.0-SNAPSHOT)"
+        description: "Maven version to upload (for example, 1.0.0)"
         required: true
         type: string
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
   publish:
@@ -31,10 +28,26 @@ jobs:
         with:
           validate-wrappers: true
 
-      - name: Publish API to GitHub Packages
+      - name: Upload API to Central Portal
         env:
-          PACKAGE_VERSION: ${{ github.event.release.tag_name || inputs.version }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PACKAGE_VERSION: ${{ inputs.version }}
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
         run: |
           version="${PACKAGE_VERSION#v}"
-          ./gradlew :chat-buttons-api:publish -PapiVersion="$version"
+          if [[ -z "$version" ]]; then
+            echo "A Maven version is required."
+            exit 1
+          fi
+          for required in \
+            ORG_GRADLE_PROJECT_mavenCentralUsername \
+            ORG_GRADLE_PROJECT_mavenCentralPassword \
+            ORG_GRADLE_PROJECT_signingInMemoryKey; do
+            if [[ -z "${!required}" ]]; then
+              echo "Missing required publishing secret: $required"
+              exit 1
+            fi
+          done
+          ./gradlew :chat-buttons-api:publishToMavenCentral -PapiVersion="$version"

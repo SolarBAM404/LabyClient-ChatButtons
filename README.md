@@ -72,33 +72,38 @@ service.addButton(player, new ChatButton(
 ).withColors(0xFFC62828, 0xFFFFFFFF).withItemIcon("minecraft:golden_apple"));
 ```
 
-Use `setButtons` to replace that player's full set, `removeButton` to remove one, and `clearButtons` to remove all. The example classes show one way to expose the service from a Paper plugin. A production API distribution should publish `chat-buttons-api` as a separate artifact and expose the transport as a required service/plugin dependency.
+Use `setButtons` to replace that player's full set, `removeButton` to remove one, and `clearButtons` to remove all. The example classes show one way to expose the service from a Paper plugin. The published `chat-buttons-api` artifact contains the developer-facing types; a Paper plugin must provide the transport and service implementation at runtime.
 
 `withColors(backgroundArgb, textArgb)` sets 32-bit ARGB colors. `withItemIcon("namespace:item")` uses a vanilla item ID rendered as the button icon; icons are decorative and do not affect the server-side command or permission checks.
 
 ## Publish the Paper API
 
-The [Paper API publishing workflow](.github/workflows/publish-api.yml) publishes only `chat-buttons-api` to this repository's GitHub Packages Maven registry. Publishing a GitHub release runs it automatically; a tag such as `v1.0.0` produces version `1.0.0`. You can also run **Publish Paper API** from the Actions tab and enter a version such as `1.0.0-SNAPSHOT`. The workflow uses its built-in `GITHUB_TOKEN` with `packages: write`; no personal token is needed to publish from this repository.
+The [Paper API publishing workflow](.github/workflows/publish-api.yml) uploads only `chat-buttons-api` under `io.gitlab.solarm404` to the Maven Central Portal. The project uses the [MIT license](LICENSE). Verify that `io.gitlab.solarm404` is registered to your Central Portal account, then generate a [Portal user token](https://central.sonatype.org/publish/generate-portal-token/) and a [GPG signing key](https://central.sonatype.org/publish/requirements/gpg/). Publish the key's public half to a key server as described in the GPG guide.
 
-Other Paper plugins can add the package as a Gradle dependency:
+Add these four GitHub Actions repository secrets:
+
+| Secret | Value |
+| --- | --- |
+| `MAVEN_CENTRAL_USERNAME` | Portal user token username |
+| `MAVEN_CENTRAL_PASSWORD` | Portal user token password |
+| `SIGNING_KEY` | ASCII-armored private GPG key |
+| `SIGNING_PASSWORD` | Passphrase for the private key, if it has one |
+
+Run **Publish Paper API to Maven Central** manually from the Actions tab and enter a version such as `1.0.0`. The workflow uploads a signed deployment. Review it in [Central Portal Deployments](https://central.sonatype.com/publishing/deployments), then click **Publish** there. Released versions cannot be replaced, so use a new version for each release. The Java package names stay `me.solar.laby.chatbuttons`; only the Maven group changes.
+
+After the release is available on Maven Central, another Paper plugin can depend on it without registry credentials:
 
 ```kotlin
 repositories {
-    maven {
-        url = uri("https://maven.pkg.github.com/solarbam404/labyclient-chatbuttons")
-        credentials {
-            username = providers.gradleProperty("githubUser").orNull
-            password = providers.gradleProperty("githubToken").orNull
-        }
-    }
+    mavenCentral()
 }
 
 dependencies {
-    compileOnly("me.solar.laby.chatbuttons:chat-buttons-api:1.0.0")
+    compileOnly("io.gitlab.solarm404:chat-buttons-api:1.0.0")
 }
 ```
 
-GitHub Packages requires credentials for package downloads, including public packages. Consumers can put `githubUser` and a classic personal access token with `read:packages` as `githubToken` in their user-level `~/.gradle/gradle.properties`; do not commit tokens to a repository. The API defines types only: the example Paper plugin provides the service implementation at runtime.
+The API defines types only: the example Paper plugin provides the service implementation at runtime.
 
 ## Wire messages
 
@@ -112,6 +117,12 @@ Client to server:
 
 ```json
 {"type":"click","id":"creative"}
+```
+
+When the addon is turned back on while connected, it requests the current server-owned snapshot:
+
+```json
+{"type":"sync"}
 ```
 
 The server accepts click requests only for IDs currently registered to the sending player. Each set/update sends a complete snapshot; an empty snapshot removes all visible buttons.

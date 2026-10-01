@@ -2,6 +2,8 @@
 
 LabyMod 4 addon targeting Minecraft 26.2. It accepts the Paper demo's JSON button snapshot on `chatbuttons:main`, draws buttons above the chat input, supports optional hover tooltips, ARGB text/background colors, and vanilla item icons, and sends only the clicked button ID back on that same channel. Command strings and permission values are never stored or received by the client. Button labels and tooltips are supplied by server plugins at runtime, so servers can provide text appropriate to their players' language.
 
+Switching the addon off in LabyMod's menu immediately hides and clears the current buttons. Switching it back on while connected asks the server for its current button list.
+
 Build from the repository root with:
 
 ```sh

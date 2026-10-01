@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import me.solar.laby.chatbuttons.api.ChatButton;
@@ -133,11 +134,21 @@ public final class PaperChatButtonService implements ChatButtonService, PluginMe
     try {
       JsonObject request =
           GSON.fromJson(new String(payload, StandardCharsets.UTF_8), JsonObject.class);
-      if (request == null
-          || !request.has("type")
-          || !"click".equals(request.get("type").getAsString())) {
+      if (request == null || !request.has("type") || !request.get("type").isJsonPrimitive()) {
         return;
       }
+
+      String type = request.get("type").getAsString();
+      if ("sync".equals(type)) {
+        Map<String, ChatButton> state = this.buttons.get(player.getUniqueId());
+        sendState(player, state == null ? List.of() : state.values());
+        return;
+      }
+
+      if (!"click".equals(type)) {
+        return;
+      }
+
       if (!request.has("id") || !request.get("id").isJsonPrimitive()) {
         return;
       }
