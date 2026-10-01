@@ -76,6 +76,30 @@ Use `setButtons` to replace that player's full set, `removeButton` to remove one
 
 `withColors(backgroundArgb, textArgb)` sets 32-bit ARGB colors. `withItemIcon("namespace:item")` uses a vanilla item ID rendered as the button icon; icons are decorative and do not affect the server-side command or permission checks.
 
+## Publish the Paper API
+
+The [Paper API publishing workflow](.github/workflows/publish-api.yml) publishes only `chat-buttons-api` to this repository's GitHub Packages Maven registry. Publishing a GitHub release runs it automatically; a tag such as `v1.0.0` produces version `1.0.0`. You can also run **Publish Paper API** from the Actions tab and enter a version such as `1.0.0-SNAPSHOT`. The workflow uses its built-in `GITHUB_TOKEN` with `packages: write`; no personal token is needed to publish from this repository.
+
+Other Paper plugins can add the package as a Gradle dependency:
+
+```kotlin
+repositories {
+    maven {
+        url = uri("https://maven.pkg.github.com/solarbam404/labyclient-chatbuttons")
+        credentials {
+            username = providers.gradleProperty("githubUser").orNull
+            password = providers.gradleProperty("githubToken").orNull
+        }
+    }
+}
+
+dependencies {
+    compileOnly("me.solar.laby.chatbuttons:chat-buttons-api:1.0.0")
+}
+```
+
+GitHub Packages requires credentials for package downloads, including public packages. Consumers can put `githubUser` and a classic personal access token with `read:packages` as `githubToken` in their user-level `~/.gradle/gradle.properties`; do not commit tokens to a repository. The API defines types only: the example Paper plugin provides the service implementation at runtime.
+
 ## Wire messages
 
 Server to client:
