@@ -1,0 +1,12 @@
+.gradle/
+build/
+**/build/
+
+# Local Paper demo server files, including worlds, backups, and player data
+/run/
+
+# IDE and operating system files
+.idea/
+*.iml
+.DS_Store
+Thumbs.db

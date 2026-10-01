@@ -1,0 +1,12 @@
+name: ChatButtonsExample
+version: 1.0.0
+main: me.solar.laby.chatbuttons.example.ChatButtonsPlugin
+api-version: "26.2"
+commands:
+  chatbuttons:
+    description: Demonstrate LabyMod chat buttons
+    usage: /chatbuttons <show|remove>
+permissions:
+  chatbuttons.example.creative:
+    description: May use the demo creative mode button
+    default: op

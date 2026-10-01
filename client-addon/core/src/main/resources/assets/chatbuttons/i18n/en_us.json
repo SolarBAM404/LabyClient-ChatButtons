@@ -1,0 +1,13 @@
+{
+  "chatbuttons": {
+    "settings": {
+      "name": "Chat Buttons",
+      "enabled": {
+        "name": "Enabled"
+      },
+      "showButtons": {
+        "name": "Show chat buttons"
+      }
+    }
+  }
+}
